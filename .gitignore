@@ -1,0 +1,15 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Local data: fetched corpus, eval output, scratch logs
+data/
+eval/results*.json
+.pytest_cache/

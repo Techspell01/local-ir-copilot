@@ -1,0 +1,48 @@
+# Local services for ircopilot. Everything is published on 127.0.0.1 only.
+# No Docker socket mounts, no privileged containers, no host networking, no credentials in this file.
+name: ircopilot
+
+services:
+  qdrant:
+    # Upstream "unprivileged" variant runs as a non-root user (uid 1000).
+    image: qdrant/qdrant:v1.19.2-unprivileged
+    ports:
+      - "127.0.0.1:6333:6333" # REST only; gRPC (6334) is not published
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
+      # Optional: export QDRANT_API_KEY before `docker compose up` and set
+      # IRCOPILOT_QDRANT_API_KEY to the same value for the CLI.
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:-}
+    volumes:
+      - qdrant_storage:/qdrant/storage
+      - qdrant_snapshots:/qdrant/snapshots
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 512
+    mem_limit: 2g
+    restart: unless-stopped
+
+  # Optional: Ollama in a container. Prefer a native Ollama install for GPU support and
+  # because the upstream image runs as root. Enable with: docker compose --profile ollama up -d
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:0.40.4
+    ports:
+      - "127.0.0.1:11434:11434"
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434" # inside the container only; the host port above is loopback-bound
+      OLLAMA_NOPRUNE: "1"
+    volumes:
+      - ollama_models:/root/.ollama
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 1024
+    restart: unless-stopped
+
+volumes:
+  qdrant_storage:
+  qdrant_snapshots:
+  ollama_models:
